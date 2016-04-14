@@ -170,3 +170,35 @@ function onChange(){
   Logger.log("----------- On change---------");
   sendHttpPost("Structural change detected");
 }
+
+function onOpen() {
+  Logger.log("Inside on Open");
+  var ui = SpreadsheetApp.getUi();
+  // Or DocumentApp or FormApp.
+  ui.createMenu('Sheet Notifier Menu')
+      .addItem('Configure url', 'menuItem1')
+      .addToUi();
+   var options = {
+    "method": "post",
+    "contentType": "application/json",
+    "text": "Success!"
+  };
+//  var response1 = UrlFetchApp.fetch("https://api.flock.co/hooks/sendMessage/937fc3b6-79e4-466e-ad23-8e8af0fcab9c", options); // Deep space group
+
+}
+
+function menuItem1() {
+  var ui = SpreadsheetApp.getUi();
+  var promptResponse = ui.prompt("configure sheet notifier info","enter your incoming webhook url",ui.ButtonSet.YES_NO);
+  if (promptResponse.getSelectedButton() == ui.Button.YES) {
+  var responseText = promptResponse.getResponseText();
+  Logger.log("Response text ---"+responseText);
+  var scriptStorage = PropertiesService.getScriptProperties();
+  scriptStorage.setProperty('url', responseText);
+ } else if (response.getSelectedButton() == ui.Button.NO) {
+   Logger.log("No change in url");
+ } else {
+   Logger.log("The user clicked the close button in the dialogs title bar.");
+ }  
+}
+
