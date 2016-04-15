@@ -29,7 +29,7 @@ function onEdit(e) {
   var columnName = sheet.getRange(1, range.getColumn()).getDisplayValues();
   var columnNumber = range.getColumn();
   var column = "";
-   
+
 
   if (columnName === 'undefined' || columnName == '') {
     column = columnNumber;
@@ -57,10 +57,10 @@ function onEdit(e) {
   var columnEnd = e.range.columnEnd;
   var rowStart =e.range.rowStart;
   var rowEnd = e.range.rowEnd;
- 
+
   var value = e.value;
   var oldValue = e.oldValue;
-  
+
   if(columnStart == columnEnd && rowStart == rowEnd){ // Single cell changed
 //    Logger.log("Same column and row affected");
     if(typeof e.oldValue === 'undefined' && JSON.stringify(e.value)!='{}'){ // Add new value
@@ -104,8 +104,28 @@ function sendHttpPost(message) {
    flockMessage.text = message;
   options.payload = (JSON.stringify(flockMessage));
 
-  var response = UrlFetchApp.fetch("https://api.flock.co/hooks/sendMessage/fee3ef72-454e-4642-bd21-b1094d1d359e", options);
-  Logger.log("Response ->" + response.getContentText());
+//  var response = UrlFetchApp.fetch("https://api.flock.co/hooks/sendMessage/fee3ef72-454e-4642-bd21-b1094d1d359e", options);
+  //Logger.log("Response ->" + response.getContentText());
+  //  var response = UrlFetchApp.fetch("https://api.flock.co/hooks/sendMessage/fee3ef72-454e-4642-bd21-b1094d1d359e", options); //
+//  var response = UrlFetchApp.fetch("https://api.flock.co/hooks/sendMessage/937fc3b6-79e4-466e-ad23-8e8af0fcab9c", options); // Deep space group
+  try{
+    Logger.log("webhook url -->"+urlVal);
+    var response = UrlFetchApp.fetch(urlVal, options);
+    Logger.log("Response ->" + response.getContentText());
+
+  }catch(e){
+    Logger.log("error ->"+JSON.stringify(e));
+    var spreadSheetOwner = SpreadsheetApp.getActiveSpreadsheet().getOwner().getEmail();
+    Logger.log("owners email "+spreadSheetOwner);
+//    MailApp.sendEmail(to, replyTo, subject, body)
+    var errorMessage = e.message;
+    if(errorMessage.includes("DNS error")){
+      MailApp.sendEmail(spreadSheetOwner,SpreadsheetApp.getActiveSpreadsheet().getName()+": Sheet mod notifier ERROR", e.message);
+    }else{
+      MailApp.sendEmail("tanushee.arya@gmail.com","Sheet mod notifier ERROR", e.message);
+    }
+  }
+
 }
 
 function getProcessorSheet(){
@@ -153,7 +173,7 @@ function checkOutstandingNotes3() {
         });
       }
     }
-    if (totalNoteCount > 4 && totalNoteCount < 20) { // these magic numbers need to be tested for reasonable limits 
+    if (totalNoteCount > 4 && totalNoteCount < 20) { // these magic numbers need to be tested for reasonable limits
       shortenUrl(URLname, function(url) {
         sendHttpPost("Sending combined digest for " + totalNoteCount + " messages: \n" + combinedMessageDigest +" "+ url);
       });
@@ -172,19 +192,15 @@ function onChange(){
 }
 
 function onOpen() {
-  Logger.log("Inside on Open");
-  var ui = SpreadsheetApp.getUi();
-  // Or DocumentApp or FormApp.
-  ui.createMenu('Sheet Notifier Menu')
-      .addItem('Configure url', 'menuItem1')
-      .addToUi();
-   var options = {
-    "method": "post",
-    "contentType": "application/json",
-    "text": "Success!"
-  };
-//  var response1 = UrlFetchApp.fetch("https://api.flock.co/hooks/sendMessage/937fc3b6-79e4-466e-ad23-8e8af0fcab9c", options); // Deep space group
-
+Logger.log("Inside on Open");
+var ui = SpreadsheetApp.getUi();
+// Or DocumentApp or FormApp.
+//  ui.createMenu('Sheet Notifier Menu')
+//      .addItem('Configure url', 'menuItem1')
+//      .addToUi();
+Logger.log("Try craeting second menu");
+ui.createAddonMenu().addItem('Configure URL', 'menuItem1').addToUi();
+createTimeDrivenTriggers();
 }
 
 function menuItem1() {
@@ -195,10 +211,29 @@ function menuItem1() {
   Logger.log("Response text ---"+responseText);
   var scriptStorage = PropertiesService.getScriptProperties();
   scriptStorage.setProperty('url', responseText);
- } else if (response.getSelectedButton() == ui.Button.NO) {
+ } else if (promptResponse.getSelectedButton() == ui.Button.NO) {
    Logger.log("No change in url");
  } else {
    Logger.log("The user clicked the close button in the dialogs title bar.");
- }  
+ }
 }
 
+function createTimeDrivenTriggers() {
+  Logger.log("Inside create trigger method.")
+//  ScriptApp.newTrigger('checkOutstandingNotes3').timeBased().everyMinutes(1).create();
+    ScriptApp.newTrigger('checkOutstandingNotes3').timeBased().everyHours(1).create();
+//  Scrip
+
+}
+
+function deleteTrigger(triggerId) {
+  // Loop over all triggers.
+  var allTriggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < allTriggers.length; i++) {
+    // If the current trigger is the correct one, delete it.
+    if (allTriggers[i].getUniqueId() == triggerId) {
+      ScriptApp.deleteTrigger(allTriggers[i]);
+      break;
+    }
+  }
+}
